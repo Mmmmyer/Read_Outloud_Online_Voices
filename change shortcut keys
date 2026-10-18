@@ -1,0 +1,206 @@
+# Changing the keyboard shortcuts
+
+All of Read Aloud's shortcuts are set in **`ReadAloud.cs`**. You can edit them in Notepad. Nothing needs compiling by hand, because the app rebuilds itself from this file every time it starts.
+
+> **Only want a different *read* shortcut?** You don't need to touch the code. Right-click the speaker icon in the tray, choose **Change read shortcut**, and pick one from the list.
+
+---
+
+## Quick steps
+
+1. **Quit Read Aloud.** Right-click the speaker icon in the tray and choose **Quit Read Aloud**.
+2. **Open the code.** Go to your `Documents\Read Aloud` folder, right-click `ReadAloud.cs`, and choose **Open with → Notepad**.
+3. **Find the shortcuts.** Press **Ctrl+F** and search for `shortcuts = new[]`.
+4. **Edit the line** for the shortcut you want to change. See the sections below.
+5. **Save** with **Ctrl+S**.
+6. **Start Read Aloud again** from the Desktop shortcut.
+7. **Changed the *read* shortcut (Id 1)?** Also follow [Clear the saved read shortcut](#important-clear-the-saved-read-shortcut), or your change will be ignored.
+
+If you make a typing mistake, Read Aloud shows a **"Read Aloud couldn't start"** message that says which line is wrong. Fix the line, save, and start it again.
+
+> **Tip:** before editing, copy `ReadAloud.cs` somewhere safe so you can always go back.
+
+---
+
+## Where the shortcuts are
+
+Search for `shortcuts = new[]`. You'll find this block:
+
+```csharp
+shortcuts = new[] {
+    new Shortcut { Id = 1, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.R,  Label = "Read highlighted text / Stop", Run = ReadOrStop },
+    new Shortcut { Id = 2, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.P,  Label = "Pause / Resume",               Run = () => synth.PauseOrResume() },
+    new Shortcut { Id = 3, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.Oemplus,  Label = "Speak faster",           Run = () => ChangeRate(+1) },
+    new Shortcut { Id = 4, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.OemMinus, Label = "Speak slower",           Run = () => ChangeRate(-1) },
+    new Shortcut { Id = 5, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.V,  Label = "Next voice",                   Run = NextVoice },
+};
+```
+
+Each line is one shortcut. Only these two parts decide which keys you press:
+
+| Part | What it means | Example |
+|---|---|---|
+| `Mods = ...` | The keys you **hold down** | `MOD_CONTROL \| MOD_ALT` = Ctrl+Alt |
+| `Key = ...` | The key you **press** while holding them | `Keys.R` = the R key |
+
+Leave `Id`, `Label` and `Run` as they are, unless you're adding a new shortcut (see the end of this guide).
+
+---
+
+## The modifier keys (`Mods`)
+
+Join modifiers with a **`|`** (the vertical bar, Shift+\\ on most keyboards).
+
+| You want to hold | Write |
+|---|---|
+| Ctrl+Alt | `MOD_CONTROL \| MOD_ALT` |
+| Ctrl+Shift | `MOD_CONTROL \| MOD_SHIFT` |
+| Alt+Shift | `MOD_ALT \| MOD_SHIFT` |
+| Ctrl+Alt+Shift | `MOD_CONTROL \| MOD_ALT \| MOD_SHIFT` |
+| Ctrl only | `MOD_CONTROL` |
+| Nothing (single key) | `0` |
+
+Use `0` only for keys you never type with, such as **Pause/Break**, **Scroll Lock** or **F13–F24**. A letter key with no modifier would stop that letter working everywhere.
+
+---
+
+## The main key (`Key`)
+
+| Key | Write |
+|---|---|
+| Letters A–Z | `Keys.A` … `Keys.Z` |
+| Number row 0–9 | `Keys.D0` … `Keys.D9` |
+| Function keys | `Keys.F1` … `Keys.F24` |
+| Number pad | `Keys.NumPad0` … `Keys.NumPad9`, `Keys.Add`, `Keys.Subtract`, `Keys.Multiply`, `Keys.Divide` |
+| Space bar | `Keys.Space` |
+| Pause/Break | `Keys.Pause` |
+| Scroll Lock | `Keys.Scroll` |
+| Insert / Home / End | `Keys.Insert`, `Keys.Home`, `Keys.End` |
+| Page Up / Page Down | `Keys.PageUp`, `Keys.PageDown` |
+| Arrow keys | `Keys.Up`, `Keys.Down`, `Keys.Left`, `Keys.Right` |
+| `=` and `-` | `Keys.Oemplus`, `Keys.OemMinus` |
+| `,` and `.` | `Keys.Oemcomma`, `Keys.OemPeriod` |
+| `/` | `Keys.OemQuestion` |
+| `;` | `Keys.Oem1` |
+
+Capitals matter. `Keys.PageUp` works, but `keys.pageup` won't.
+
+---
+
+## Examples
+
+**Read with Ctrl+Shift+Space instead of Ctrl+Alt+R** (change line `Id = 1`):
+
+```csharp
+new Shortcut { Id = 1, Mods = MOD_CONTROL | MOD_SHIFT, Key = Keys.Space,  Label = "Read highlighted text / Stop", Run = ReadOrStop },
+```
+
+**Read with just the Pause/Break key:**
+
+```csharp
+new Shortcut { Id = 1, Mods = 0, Key = Keys.Pause,  Label = "Read highlighted text / Stop", Run = ReadOrStop },
+```
+
+**Pause with Ctrl+Alt+Space instead of Ctrl+Alt+P** (change line `Id = 2`):
+
+```csharp
+new Shortcut { Id = 2, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.Space,  Label = "Pause / Resume", Run = () => synth.PauseOrResume() },
+```
+
+**Faster and slower on the arrow keys** (lines `Id = 3` and `Id = 4`):
+
+```csharp
+new Shortcut { Id = 3, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.Up,    Label = "Speak faster", Run = () => ChangeRate(+1) },
+new Shortcut { Id = 4, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.Down,  Label = "Speak slower", Run = () => ChangeRate(-1) },
+```
+
+The tray menu and pop-ups update automatically to show your new keys.
+
+---
+
+## Important: clear the saved read shortcut
+
+Read Aloud **remembers** the read shortcut (`Id = 1`) in Windows settings. That memory wins over what's written in the code. So after changing `Id = 1`, do one of these:
+
+- **Easiest:** start Read Aloud, right-click the tray icon, and choose your key from **Change read shortcut**. This works if your key is in that list.
+- **Otherwise:** with Read Aloud closed, open **PowerShell** (search for it in the Start menu), paste the line below and press Enter. Then start Read Aloud.
+
+```powershell
+Remove-ItemProperty -Path HKCU:\Software\ReadAloud -Name ReadMods, ReadKey -ErrorAction SilentlyContinue
+```
+
+This only clears the saved read shortcut. Your chosen voice and speed are kept. The other shortcuts (`Id` 2–5) aren't remembered this way, so code changes to them take effect straight away.
+
+---
+
+## Changing the "Change read shortcut" menu list
+
+The choices in the tray's **Change read shortcut** menu come from two lines just above the shortcuts block. Search for `ReadMods`:
+
+```csharp
+static readonly uint[] ReadMods = { MOD_CONTROL | MOD_ALT, MOD_CONTROL | MOD_ALT, MOD_CONTROL | MOD_SHIFT, MOD_CONTROL | MOD_ALT, 0 };
+static readonly Keys[] ReadKeys = { Keys.R, Keys.Space, Keys.Space, Keys.F12, Keys.Pause };
+```
+
+These two lists work as pairs, read left to right. The 1st modifier goes with the 1st key, the 2nd with the 2nd, and so on. The default pairs are:
+
+| # | Modifier | Key | Result |
+|---|---|---|---|
+| 1 | `MOD_CONTROL \| MOD_ALT` | `Keys.R` | Ctrl+Alt+R |
+| 2 | `MOD_CONTROL \| MOD_ALT` | `Keys.Space` | Ctrl+Alt+Space |
+| 3 | `MOD_CONTROL \| MOD_SHIFT` | `Keys.Space` | Ctrl+Shift+Space |
+| 4 | `MOD_CONTROL \| MOD_ALT` | `Keys.F12` | Ctrl+Alt+F12 |
+| 5 | `0` | `Keys.Pause` | Pause/Break |
+
+To add or remove a choice, add or remove an entry **in both lists at the same position**. The two lists must always have the same number of entries.
+
+If the read shortcut is already taken when the app starts, Read Aloud tries these in order and uses the first free one.
+
+---
+
+## Adding a new shortcut (optional)
+
+As an example, here's how to add a separate **Stop** shortcut on Ctrl+Alt+S. Add a new line at the end of the block, after the `Id = 5` line and before `};`:
+
+```csharp
+    new Shortcut { Id = 5, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.V,  Label = "Next voice",  Run = NextVoice },
+    new Shortcut { Id = 6, Mods = MOD_CONTROL | MOD_ALT, Key = Keys.S,  Label = "Stop",        Run = () => synth.Stop() },
+};
+```
+
+Rules for new lines:
+
+- Give each shortcut its **own `Id` number**. Use the next unused one: 6, 7, 8…
+- Every line except the last ends with `},`, with a comma.
+- Keep **`Id = 1` as the first line**. The app treats the first line as the read shortcut.
+
+These actions are ready to use in `Run = ...`:
+
+| Action | Write |
+|---|---|
+| Read / stop | `ReadOrStop` |
+| Stop only | `() => synth.Stop()` |
+| Pause / resume | `() => synth.PauseOrResume()` |
+| Faster / slower | `() => ChangeRate(+1)` / `() => ChangeRate(-1)` |
+| Next voice | `NextVoice` |
+
+---
+
+## Choosing keys that will work
+
+- **Avoid shortcuts Windows or your apps already use**, such as Ctrl+C, Ctrl+V, Ctrl+Alt+Delete or Alt+Tab. Read Aloud takes over a shortcut everywhere, so it would stop working in your other programs.
+- **Graphics and gaming software** (NVIDIA, AMD Radeon, Xbox Game Bar) often grab Ctrl+Alt and Alt+letter combinations. If you see "already used by another program", pick something else.
+- **The Windows key** isn't supported. Windows reserves most Win+key combinations for itself.
+- **Each shortcut must be different.** Two lines with the same keys means the second one won't work.
+
+---
+
+## Troubleshooting
+
+| What you see | What to do |
+|---|---|
+| "Read Aloud couldn't start" with an error | A typing mistake in `ReadAloud.cs`. The message gives the line number. Check for a missing comma, a missing `\|`, or wrong capital letters in a `Keys.` name. The full error is also saved in `ReadAloud-error.txt`. |
+| "These shortcuts are already used by another program" | Another app owns that combination. Choose different keys. |
+| My new read shortcut is ignored | The old one is still saved. See [Clear the saved read shortcut](#important-clear-the-saved-read-shortcut). |
+| Nothing changed | Make sure you saved the file and fully quit Read Aloud from the tray before starting it again. |
+| It all went wrong | Put back your saved copy of `ReadAloud.cs`, or run `Install.cmd` again from the original download. |
