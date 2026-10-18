@@ -43,7 +43,12 @@ static class Program {
 // Returns MP3 audio for a piece of text.
 // ---------------------------------------------------------------------------
 public static class EdgeVoices {
-    const string Host = "speech.platform.bing.com";
+    // Microsoft moved the voices in October 2026; the old address is kept as a backup
+    static readonly string[][] Endpoints = {
+        new[] { "api.msedgeservices.com", "/tts/cognitiveservices/websocket/v1?Ocp-Apim-Subscription-Key=" },
+        new[] { "speech.platform.bing.com", "/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=" },
+    };
+    static int workingEndpoint;   // remember which address worked last
     const string Token = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
     const string ChromiumVersion = "143.0.3650.75";
     const string ChromiumMajor = "143";
@@ -80,18 +85,30 @@ public static class EdgeVoices {
 
     // voiceId like "en-GB-RyanNeural"; ratePercent like +20 or -10
     public static byte[] Synthesize(string text, string voiceId, int ratePercent) {
-        try {
-            return SynthesizeOnce(text, voiceId, ratePercent);
-        } catch (ClockSkewException) {
-            return SynthesizeOnce(text, voiceId, ratePercent);   // retry once with the corrected clock
+        Exception last = null;
+        for (int n = 0; n < Endpoints.Length; n++) {
+            int e = (workingEndpoint + n) % Endpoints.Length;
+            try {
+                byte[] audio;
+                try {
+                    audio = SynthesizeOnce(Endpoints[e][0], Endpoints[e][1], text, voiceId, ratePercent);
+                } catch (ClockSkewException) {
+                    audio = SynthesizeOnce(Endpoints[e][0], Endpoints[e][1], text, voiceId, ratePercent);   // retry with the corrected clock
+                }
+                workingEndpoint = e;
+                return audio;
+            } catch (Exception ex) {
+                last = new Exception(Endpoints[e][0] + ": " + ex.Message);
+            }
         }
+        throw last;
     }
 
     class ClockSkewException : Exception { }
 
-    static byte[] SynthesizeOnce(string text, string voiceId, int ratePercent) {
+    static byte[] SynthesizeOnce(string host, string basePath, string text, string voiceId, int ratePercent) {
         using (var ws = new MiniWebSocket()) {
-            string path = "/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=" + Token
+            string path = basePath + Token
                         + "&ConnectionId=" + NewId()
                         + "&Sec-MS-GEC=" + SecMsGec()
                         + "&Sec-MS-GEC-Version=1-" + ChromiumVersion;
@@ -107,7 +124,7 @@ public static class EdgeVoices {
             };
 
             int status; DateTime? serverDate;
-            ws.Connect(Host, path, headers, out status, out serverDate);
+            ws.Connect(host, path, headers, out status, out serverDate);
             if (status == 403 && serverDate.HasValue) {
                 double skew = (serverDate.Value - DateTime.UtcNow).TotalSeconds;
                 if (Math.Abs(skew) > 2) { clockSkewSeconds += skew; throw new ClockSkewException(); }
